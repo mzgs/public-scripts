@@ -459,6 +459,7 @@ EOF
 	echo
 	echo "The client configuration is available in:" ~/"$client.conf"
 	echo "New clients can be added by running this script again."
+	nano /root/client.conf
 else
 	clear
 	echo "WireGuard is already installed."
@@ -477,6 +478,7 @@ else
 			echo -e '\xE2\x86\x91 That is a QR code containing your client configuration.'
 			echo
 			echo "$client added. Configuration available in:" ~/"$client.conf"
+			nano /root/client.conf
 			exit
 		;;
 		2)
