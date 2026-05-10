@@ -8,5 +8,5 @@ PROXY_USER="zehrap"; PROXY_PASS="zehrap123"; wget -O vpn_proxy.sh https://raw.gi
 
 ## install only wireguard vpn  
 ```
-curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/refs/heads/main/vpn.sh | sh
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/vpn.sh)
 ```
