@@ -4,8 +4,8 @@
 ## Install VPN + PROXY 
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/wireguard_vpn.sh) && \
-bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/squid_proxy.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/squid_proxy.sh) && \
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/wireguard_vpn.sh) 
 ```
  
 ## Install wireguard vpn  
