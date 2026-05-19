@@ -154,6 +154,19 @@ PersistentKeepalive = 25
 EOF
 }
 
+show_client_config () {
+	client_config="$HOME/$client.conf"
+	echo "The client configuration is available in: $client_config"
+	if command -v nano >/dev/null 2>&1 && [[ -r /dev/tty && -w /dev/tty ]]; then
+		nano "$client_config" < /dev/tty > /dev/tty 2> /dev/tty
+	else
+		echo
+		echo "----- BEGIN $client.conf -----"
+		cat "$client_config"
+		echo "----- END $client.conf -----"
+	fi
+}
+
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
 	# Detect some Debian minimal setups where neither wget nor curl are installed
 	if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
@@ -460,9 +473,8 @@ EOF
 		echo "Finished!"
 	fi
 	echo
-	echo "The client configuration is available in:" ~/"$client.conf"
+	show_client_config
 	echo "New clients can be added by running this script again."
-	nano /root/client.conf
 else
 	clear
 	echo "WireGuard is already installed."
@@ -480,10 +492,10 @@ else
 			qrencode -t UTF8 < ~/"$client.conf"
 			echo -e '\xE2\x86\x91 That is a QR code containing your client configuration.'
 			echo
-			echo "$client added. Configuration available in:" ~/"$client.conf"
-			nano /root/client.conf
+			echo "$client added."
+			show_client_config
 			exit
-		;;
+			;;
 		2)
 			# This option could be documented a bit better and maybe even be simplified
 			# ...but what can I say, I want some sleep too
