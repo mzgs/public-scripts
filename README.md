@@ -10,3 +10,16 @@ PROXY_USER="zehrap"; PROXY_PASS="zehrap123"; wget -O vpn_proxy.sh https://raw.gi
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/vpn.sh)
 ```
+
+
+## macos freh install 
+
+#### Apps 
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/1-brew-apps.sh)
+```
+
+#### Mac Settings 
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/2-mac-settings.sh)
+```
