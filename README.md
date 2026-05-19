@@ -12,7 +12,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/vpn
 ```
 
 
-## macos freh install 
+## macos fresh install 
 
 #### Apps 
 ```
