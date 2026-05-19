@@ -9,8 +9,11 @@ if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
   exit 1
 fi
 
+# Get public IP
+PUBLIC_IP=$(curl -s ifconfig.me)
+
 # Update and install squid
-sudo apt update && sudo apt install squid -y
+sudo apt update && sudo apt install squid -y curl
 
 # Start and enable squid service
 sudo systemctl start squid
@@ -27,7 +30,7 @@ sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.backup
 
 # Write the configuration to the squid.conf file
 sudo bash -c 'cat <<EOL > /etc/squid/squid.conf
-http_port 0.0.0.0:3128
+http_port 3128
 
 acl all src 0.0.0.0/0
 
@@ -45,6 +48,11 @@ EOL'
 # Restart the squid service to apply changes
 sudo systemctl restart squid
 
-echo "Success!"
-echo "Username: $USERNAME"
-echo "Password: $PASSWORD"
+echo ""
+echo "=================================="
+echo "        PROXY CREATED"
+echo "=================================="
+echo "Proxy URL : $PUBLIC_IP:3128"
+echo "Username  : $USERNAME"
+echo "Password  : $PASSWORD"
+echo "=================================="
