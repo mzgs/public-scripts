@@ -11,8 +11,11 @@ if readlink /proc/$$/exe | grep -q "dash"; then
 	exit
 fi
 
-# Discard stdin. Needed when running from an one-liner which includes a newline
-read -N 999999 -t 0.001
+# Discard interactive stdin only. With "curl ... | bash", stdin contains this
+# script; reading from it here would consume later lines and corrupt execution.
+if [[ -t 0 ]]; then
+	read -r -N 999999 -t 0.001 || true
+fi
 
 # Detect OpenVZ 6
 if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
