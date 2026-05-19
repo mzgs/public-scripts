@@ -11,11 +11,8 @@ if readlink /proc/$$/exe | grep -q "dash"; then
 	exit
 fi
 
-# Discard interactive stdin only. With "curl ... | bash", stdin contains this
-# script; reading from it here would consume later lines and corrupt execution.
-if [[ -t 0 ]]; then
-	read -r -N 999999 -t 0.001 || true
-fi
+# Discard stdin. Needed when running from an one-liner which includes a newline
+read -N 999999 -t 0.001
 
 # Detect OpenVZ 6
 if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
@@ -152,19 +149,6 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = $(grep '^# ENDPOINT' /etc/wireguard/wg0.conf | cut -d " " -f 3):$(grep ListenPort /etc/wireguard/wg0.conf | cut -d " " -f 3)
 PersistentKeepalive = 25
 EOF
-}
-
-show_client_config () {
-	client_config="$HOME/$client.conf"
-	echo "The client configuration is available in: $client_config"
-	if command -v nano >/dev/null 2>&1 && [[ -r /dev/tty && -w /dev/tty ]]; then
-		nano "$client_config" < /dev/tty > /dev/tty 2> /dev/tty
-	else
-		echo
-		echo "----- BEGIN $client.conf -----"
-		cat "$client_config"
-		echo "----- END $client.conf -----"
-	fi
 }
 
 if [[ ! -e /etc/wireguard/wg0.conf ]]; then
@@ -473,8 +457,9 @@ EOF
 		echo "Finished!"
 	fi
 	echo
-	show_client_config
+	echo "The client configuration is available in:" ~/"$client.conf"
 	echo "New clients can be added by running this script again."
+	nano /root/client.conf
 else
 	clear
 	echo "WireGuard is already installed."
@@ -492,10 +477,10 @@ else
 			qrencode -t UTF8 < ~/"$client.conf"
 			echo -e '\xE2\x86\x91 That is a QR code containing your client configuration.'
 			echo
-			echo "$client added."
-			show_client_config
+			echo "$client added. Configuration available in:" ~/"$client.conf"
+			nano /root/client.conf
 			exit
-			;;
+		;;
 		2)
 			# This option could be documented a bit better and maybe even be simplified
 			# ...but what can I say, I want some sleep too
