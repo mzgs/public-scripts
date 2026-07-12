@@ -132,7 +132,7 @@ AllowedIPs = 10.7.0.$octet/32
 # END_PEER $client
 EOF
 	# Create client configuration.
-	# MTU 1420 is the standard safe WireGuard default for most VPS networks.
+	# MTU 1280 is the standard safe WireGuard default for most VPS networks.
 	# AllowedIPs intentionally uses IPv4 full tunnel only. Add ::/0 manually only
 	# if you have confirmed IPv6 works correctly end-to-end.
 	cat << EOF > ~/"$client".conf
@@ -140,7 +140,7 @@ EOF
 Address = 10.7.0.$octet/24
 DNS = $dns
 PrivateKey = $key
-MTU = 1420
+MTU = 1280
 
 [Peer]
 PublicKey = $(grep PrivateKey /etc/wireguard/wg0.conf | cut -d " " -f 3 | wg pubkey)
