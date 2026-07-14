@@ -95,7 +95,6 @@ CLI_APPS=(
     "node"
     "go"
     "bash-completion@2"
-    "oven-sh/bun/bun"
     "ncdu"
     "duti"
     "php"
