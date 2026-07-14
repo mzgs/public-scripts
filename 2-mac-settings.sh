@@ -1,5 +1,6 @@
 #!/bin/bash
-set -euo pipefail
+# Keep going if one setting is unsupported, an app is missing, or a command fails.
+set +e
 echo "Starting MacOS setup script for fresh install."
 
 
@@ -216,3 +217,4 @@ killall Dock
 killall cfprefsd
 
 echo "Finished installations and configurations."
+exit 0
