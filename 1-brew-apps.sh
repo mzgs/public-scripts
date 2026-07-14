@@ -6,6 +6,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Keep Homebrew installs automated.
+export NONINTERACTIVE=1
+export PIP_NO_INPUT=1
+
 # Function to print colored output
 print_status() {
     echo -e "${GREEN}[✓]${NC} $1"
@@ -38,7 +42,7 @@ echo "========================================="
 # Check if Homebrew is already installed
 if ! command -v brew &> /dev/null; then
     print_status "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     
     # Determine the correct Homebrew path based on architecture
     if [[ -f "/opt/homebrew/bin/brew" ]]; then
@@ -69,7 +73,7 @@ if ! command -v brew &> /dev/null; then
     source "$SHELL_PROFILE"
 else
     print_status "Homebrew is already installed"
-    brew update
+    yes | brew update
 fi
 
 # Verify Homebrew is working
@@ -109,7 +113,7 @@ for app in "${CLI_APPS[@]}"; do
         print_warning "$app is already installed"
     else
         print_status "Installing $app..."
-        if brew install "$app" 2>/dev/null; then
+        if yes | brew install "$app" 2>/dev/null; then
             print_status "$app installed successfully"
         else
             print_error "Failed to install $app"
@@ -144,7 +148,7 @@ for app in "${CASK_APPS[@]}"; do
         print_warning "$app is already installed"
     else
         print_status "Installing $app..."
-        if brew install --cask "$app" 2>/dev/null; then
+        if yes | brew install --cask "$app" 2>/dev/null; then
             print_status "$app installed successfully"
         else
             print_error "Failed to install $app (might require manual installation)"
@@ -153,7 +157,7 @@ for app in "${CASK_APPS[@]}"; do
 done
 
 
-$(brew --prefix python@3.10)/bin/python3.10 -m pip install --upgrade yt-dlp
+yes | "$(brew --prefix python@3.10)/bin/python3.10" -m pip install --upgrade --no-input yt-dlp
 
 # Start MariaDB service
 echo ""
@@ -165,7 +169,7 @@ if brew services list | grep -q "mariadb.*started"; then
     print_status "MariaDB service is already running"
 else
     print_status "Starting MariaDB service..."
-    if brew services start mariadb; then
+    if yes | brew services start mariadb; then
         print_status "MariaDB service started"
     else
         print_error "Failed to start MariaDB service"
@@ -175,7 +179,7 @@ fi
 # Clean up
 echo ""
 print_status "Cleaning up Homebrew cache..."
-brew cleanup
+yes | brew cleanup
 
 # Summary
 echo ""
