@@ -93,7 +93,6 @@ echo "========================================="
 CLI_APPS=(
     "wget"
     "speedtest-cli"
-    "python@3.10"
     "dockutil"
     "tree"
     "node"
