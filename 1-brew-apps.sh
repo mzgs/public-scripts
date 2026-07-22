@@ -103,7 +103,7 @@ CLI_APPS=(
     "php"
     "mariadb"
     "phpmyadmin"
-    "ffmpeg"
+    "ffmpeg-full"
     "composer"
 )
 
