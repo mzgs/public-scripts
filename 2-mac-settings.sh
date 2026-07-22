@@ -209,6 +209,9 @@ dockutil --add /System/Applications/System\ Settings.app
 dockutil --add "/Applications/Visual Studio Code.app"
 dockutil --add /Users/$(whoami)/Downloads --view fan --display stack --sort dateadded --section others
 
+python3 -m pip config set global.break-system-packages true
+python3 -m pip config set install.user true
+
  
 # Restart services
 echo "Restarting Finder, Dock, and SystemUIServer..."
