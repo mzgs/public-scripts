@@ -140,6 +140,7 @@ CASK_APPS=(
     "telegram"
     "tinypng4mac"
     "whatsapp"
+    "jarvis322/tap/sysdata"
 )
 
 for app in "${CASK_APPS[@]}"; do
