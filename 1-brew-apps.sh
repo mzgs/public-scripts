@@ -104,6 +104,7 @@ CLI_APPS=(
     "mariadb"
     "phpmyadmin"
     "ffmpeg-full"
+    "codex"
     "composer"
 )
 
@@ -140,6 +141,8 @@ CASK_APPS=(
     "telegram"
     "tinypng4mac"
     "whatsapp"
+    "claude-code"
+    "chatgpt"
     "jarvis322/tap/sysdata"
 )
 
