@@ -1,223 +1,206 @@
 #!/bin/bash
-# Keep going if one setting is unsupported, an app is missing, or a command fails.
-set +e
-echo "Starting MacOS setup script for fresh install."
+# Continue after individual failures, then report them and return a failing status.
+set -u
+set -o pipefail
 
+if [[ "$(uname -s)" != Darwin ]]; then
+    echo "This script requires macOS." >&2
+    exit 1
+fi
+macos_version=$(sw_vers -productVersion) || exit 1
+if [[ "${macos_version%%.*}" -lt 15 || "$EUID" -eq 0 ]]; then
+    echo "Run as your normal user on macOS 15 or newer, without sudo." >&2
+    exit 1
+fi
 
+# The app script may have installed Homebrew in a different shell.
+if ! command -v brew >/dev/null 2>&1; then
+    if [[ "$(uname -m)" == arm64 ]]; then
+        BREW_BIN="/opt/homebrew/bin/brew"
+    else
+        BREW_BIN="/usr/local/bin/brew"
+    fi
+    if [[ -x "$BREW_BIN" ]]; then
+        brew_env=$("$BREW_BIN" shellenv) || exit 1
+        eval "$brew_env" || exit 1
+    fi
+fi
 
-sudo spctl --master-disable
- 
-duti -s org.videolan.vlc public.movie all
-duti -s org.videolan.vlc public.mpeg-4 all
-duti -s org.videolan.vlc public.avi all
-duti -s org.videolan.vlc com.apple.quicktime-movie all
-duti -s org.videolan.vlc public.mpeg all
+failures=()
+run() {
+    if "$@"; then
+        return 0
+    else
+        failures+=("$*")
+        printf '[FAILED] %s\n' "$*" >&2
+        return 1
+    fi
+}
 
+echo "Applying preferences for macOS $macos_version. Close System Settings and apps first."
 
+if command -v duti >/dev/null 2>&1 && [[ -d "/Applications/VLC.app" ]]; then
+    for type in public.movie public.mpeg-4 public.avi com.apple.quicktime-movie public.mpeg; do
+        run duti -s org.videolan.vlc "$type" all
+    done
+else
+    failures+=("VLC associations: install duti and VLC with script 1")
+fi
 
-# Settings
-echo "Applying macOS settings..."
-defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
-defaults write com.apple.helpviewer DevMode -bool true
-defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
-echo "General macOS settings applied."
+# Dock and Mission Control. See the Sequoia demos linked in README.md.
+run defaults write com.apple.dock mineffect -string scale
+run defaults write com.apple.dock minimize-to-application -bool true
+run defaults write com.apple.dock mru-spaces -bool false
+run defaults write com.apple.dock show-recents -bool false
+run defaults write com.apple.dock launchanim -bool false
+run defaults write com.apple.dock autohide-delay -float 0
+run defaults write com.apple.dock autohide-time-modifier -float 0.15
+run defaults write com.apple.dock wvous-br-corner -int 4
+run defaults write com.apple.dock wvous-br-modifier -int 0
+run defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
 
+# Sequoia stores the percentage preference in the current-host domain.
+if [[ "${macos_version%%.*}" -eq 15 ]]; then
+    run defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true
+fi
 
+# Keyboard and trackpad. These are user preferences, not login-screen settings.
+run defaults write -g ApplePressAndHoldEnabled -bool false
+run defaults write -g KeyRepeat -int 1
+run defaults write -g InitialKeyRepeat -int 10
+run defaults write -g NSAutomaticQuoteSubstitutionEnabled -bool false
+run defaults write -g NSAutomaticDashSubstitutionEnabled -bool false
+run defaults write -g NSAutomaticSpellingCorrectionEnabled -bool false
+run defaults write -g NSAutomaticWindowAnimationsEnabled -bool false
+for domain in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothMultitouch.trackpad; do
+    run defaults write "$domain" Clicking -bool true
+    # Other drag modes conflict with three-finger drag.
+    run defaults write "$domain" Dragging -bool false
+    run defaults write "$domain" DragLock -bool false
+    run defaults write "$domain" TrackpadThreeFingerDrag -bool true
+done
+run defaults -currentHost write -g com.apple.mouse.tapBehavior -int 1
+run defaults write -g com.apple.mouse.tapBehavior -int 1
 
-defaults write com.apple.dock show-recents -bool false
+echo "Configuring Finder..."
+run defaults write com.apple.finder QuitMenuItem -bool true
+run defaults write com.apple.finder NewWindowTarget -string PfHm
+run defaults write com.apple.finder ShowStatusBar -bool true
+run defaults write com.apple.finder FXDefaultSearchScope -string SCcf
+run defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+run defaults write com.apple.finder FXPreferredViewStyle -string Nlsv
+run defaults write com.apple.finder WarnOnEmptyTrash -bool false
+run defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+run defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+run defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+run defaults write com.apple.finder ShowHardDrivesOnDesktop -bool false
+run defaults write com.apple.finder ShowMountedServersOnDesktop -bool true
+run defaults write com.apple.finder ShowRemovableMediaOnDesktop -bool true
+run chflags nohidden "$HOME/Library"
 
+run defaults write com.apple.ActivityMonitor OpenMainWindow -bool true
+run defaults write com.apple.ActivityMonitor IconType -int 5
+run defaults write com.apple.ActivityMonitor ShowCategory -int 0
+run defaults write com.apple.ActivityMonitor SortColumn -string CPUUsage
+run defaults write com.apple.ActivityMonitor SortDirection -int 0
+run defaults write -g NSNavPanelExpandedStateForSaveMode -bool true
+run defaults write -g NSNavPanelExpandedStateForSaveMode2 -bool true
+run defaults write -g PMPrintingExpandedStateForPrint -bool true
+run defaults write -g PMPrintingExpandedStateForPrint2 -bool true
+run defaults write com.apple.screencapture include-date -bool false
+if run mkdir -p "$HOME/Desktop/Screenshots"; then
+    run defaults write com.apple.screencapture location -string "$HOME/Desktop/Screenshots"
+fi
 
-# Dock preferences
-echo "Configuring Dock preferences..."
-defaults write com.apple.dock mineffect -string "scale"
-defaults write com.apple.dock minimize-to-application -bool true
-defaults write com.apple.dock mru-spaces -bool false
-defaults write com.apple.dock show-recents -bool false
-echo "Dock preferences configured."
+# These system settings require authentication. Skip pmset on desktop Macs.
+if run sudo -v; then
+    # Intentional: remove global local account policies to allow shorter passwords.
+    run sudo pwpolicy -clearaccountpolicies
+    run sudo defaults write /Library/Preferences/com.apple.loginwindow AdminHostInfo -string HostName
+    if pmset -g batt | grep -q 'InternalBattery'; then
+        run sudo pmset -b displaysleep 20
+    fi
+fi
 
-# Show battery percentage
-defaults write com.apple.controlcenter "NSStatusItem Visible Battery" -bool true
-defaults write com.apple.controlcenter "Battery ShowPercentage" -bool true
+# Use PHP itself to find the ini file (including paths containing spaces).
+if command -v php >/dev/null 2>&1; then
+    if config_file=$(php -r 'echo php_ini_loaded_file();') && [[ -f "$config_file" ]]; then
+        backup_file="$config_file.before-macos-setup"
+        if [[ -e "$backup_file" ]] || run cp "$config_file" "$backup_file"; then
+            if run sed -i '' \
+                -e 's/^[[:space:]]*max_execution_time[[:space:]]*=.*/max_execution_time = 600/' \
+                -e 's/^[[:space:]]*memory_limit[[:space:]]*=.*/memory_limit = 1024M/' \
+                -e 's/^[[:space:]]*upload_max_filesize[[:space:]]*=.*/upload_max_filesize = 512M/' \
+                -e 's/^[[:space:]]*post_max_size[[:space:]]*=.*/post_max_size = 512M/' "$config_file"; then
+                # CLI PHP forces execution time to 0; inspect that saved directive.
+                # Check the other limits for overrides in additional ini files.
+                run php -r '$ini = parse_ini_file(php_ini_loaded_file(), false, INI_SCANNER_RAW); exit(($ini["max_execution_time"] ?? "") == "600" && ini_get("memory_limit") == "1024M" && ini_get("upload_max_filesize") == "512M" && ini_get("post_max_size") == "512M" ? 0 : 1);'
+            fi
+        fi
+    else
+        failures+=("PHP did not report an existing loaded php.ini")
+    fi
+else
+    failures+=("PHP configuration: install PHP with script 1")
+fi
 
-# Prevent Photos from opening automatically when devices are plugged in
-defaults -currentHost write com.apple.ImageCapture disableHotPlug -bool true
+run git config --global user.email "mzgsdev@gmail.com"
+run git config --global user.name "Mustafa"
 
-# Trackpad and input preferences
-echo "Configuring trackpad and keyboard preferences..."
-defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-defaults -currentHost write -g com.apple.mouse.tapBehavior -int 1
-defaults write -g com.apple.mouse.tapBehavior -int 1
-defaults write com.apple.universalaccess closeViewScrollWheelToggle -bool true
-defaults write com.apple.universalaccess HIDScrollZoomModifierMask -int 262144
-defaults write com.apple.universalaccess closeViewZoomFollowsFocus -bool true
-defaults write -g ApplePressAndHoldEnabled -bool false
-defaults write -g KeyRepeat -int 1
-defaults write -g InitialKeyRepeat -int 10
-echo "Trackpad and keyboard preferences configured."
-defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-defaults write NSGlobalDomain KeyRepeat -int 1
-defaults write NSGlobalDomain InitialKeyRepeat -int 10
+# Validate all targets before clearing the Dock; batch changes into one restart.
+dock_apps=(
+    "/System/Applications/Mail.app"
+    "/Applications/Google Chrome.app"
+    "/System/Applications/System Settings.app"
+    "/Applications/Visual Studio Code.app"
+)
+dock_ready=true
+if ! command -v dockutil >/dev/null 2>&1; then
+    failures+=("Dock configuration: install dockutil with script 1")
+    dock_ready=false
+fi
+for app in "${dock_apps[@]}" "$HOME/Downloads"; do
+    if [[ ! -d "$app" ]]; then
+        failures+=("Dock target missing: $app")
+        dock_ready=false
+    fi
+done
+if [[ "$dock_ready" == true ]] && run dockutil --remove all --no-restart; then
+    for app in "${dock_apps[@]}"; do
+        run dockutil --add "$app" --no-restart
+    done
+    run dockutil --add "$HOME/Downloads" --view fan --display stack --sort dateadded --section others --no-restart
+fi
 
-# Disable animations when opening and closing windows
-defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false
-# Speed up Mission Control animations
-defaults write com.apple.dock expose-animation-duration -float 0.1
-# Don't animate opening applications from the Dock
-defaults write com.apple.dock launchanim -bool false
+# A process not running is normal; do not count that as a setup failure.
+for process in Finder Dock SystemUIServer ControlCenter; do
+    if pgrep -x "$process" >/dev/null; then
+        run killall "$process"
+    fi
+done
 
- 
+cat <<'EOF'
 
-# Show IP address, hostname, OS version when clicking clock in login screen
-sudo defaults write /Library/Preferences/com.apple.loginwindow AdminHostInfo HostName
+Manual settings / verification after logging out and back in:
+  - Control Center (macOS 15), or Menu Bar on newer macOS: show Battery percentage
+    and Sound; use Clock Options for the date, day of week, and 24-hour clock.
+  - Accessibility > Pointer Control > Trackpad Options: verify Three Finger Drag.
+  - Accessibility > Zoom: enable scroll-to-zoom with Control and focus tracking.
+  - Accessibility > Display: enable Reduce motion for animations still present.
+  - General > Software Update > Automatic Updates: choose your update preferences.
+  - Apple Intelligence & Siri: turn Siri off if desired.
+  - Lock Screen: choose your password delay (the old script requested 8 hours).
+  - Privacy & Security: use Open Anyway individually for trusted blocked apps.
+  - Notifications: configure permissions per app; no global prompt bypass is used.
+  - Image Capture: select each device and set "Connecting this device opens" to
+    "No application" to prevent Photos opening automatically.
+Legacy Help Viewer, Quick Look selection, Bluetooth bitpool, Time Machine disk
+prompts, and app-specific hidden tweaks were omitted; see README.md.
+EOF
 
-
-defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
-
-sudo pmset -b displaysleep 20
-
-# Finder preferences
-echo "Configuring Finder preferences..."
-defaults write com.apple.finder QuitMenuItem -bool true
-defaults write com.apple.finder NewWindowTarget -string "PfHm"
-defaults write com.apple.finder ShowStatusBar -bool true
-defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
-defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
-defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
-chflags nohidden ~/Library
-defaults write com.apple.dock wvous-br-corner -int 4 && defaults write com.apple.dock wvous-br-modifier -int 0
-defaults write com.apple.dock autohide-delay -float 0
-defaults write com.apple.dock autohide-time-modifier -float 0.15
-defaults write com.apple.dock mineffect -string scale
-defaults write com.apple.dock show-recents -bool false
-
-killall Dock
-
-echo "Finder preferences configured."
-
-# Time Machine preferences
-echo "Configuring Time Machine preferences..."
-defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
-echo "Time Machine preferences configured."
-
-# Activity Monitor preferences
-echo "Configuring Activity Monitor preferences..."
-defaults write com.apple.ActivityMonitor OpenMainWindow -bool true
-defaults write com.apple.ActivityMonitor IconType -int 5
-defaults write com.apple.ActivityMonitor ShowCategory -int 0
-defaults write com.apple.ActivityMonitor SortColumn -string "CPUUsage"
-defaults write com.apple.ActivityMonitor SortDirection -int 0
-echo "Activity Monitor preferences configured."
-
-# Show icons for hard drives, servers, and removable media on desktop
-defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
-defaults write com.apple.finder ShowHardDrivesOnDesktop -bool false
-defaults write com.apple.finder ShowMountedServersOnDesktop -bool true
-defaults write com.apple.finder ShowRemovableMediaOnDesktop -bool true
-
-# Speed up window resize animations
-defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
-
-# Improve Bluetooth audio quality
-defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
-# Telegram - Disable animations
-defaults write ru.keepcoder.Telegram reduceMotion -bool true
-
-
-# QuickTime Player preferences
-echo "Configuring QuickTime Player preferences..."
-defaults write com.apple.QuickTimePlayerX MGPlayMovieOnOpen -bool true
-echo "QuickTime Player preferences configured."
-
-# Software update preferences
-echo "Disabling automatic software update checks..."
-sudo softwareupdate --schedule off
-echo "Automatic software updates disabled."
-
-# Save and print panels
-echo "Expanding save and print panels by default..."
-defaults write -g NSNavPanelExpandedStateForSaveMode -bool true
-defaults write -g PMPrintingExpandedStateForPrint -bool true
-echo "Save and print panel settings applied."
-
-# Security and input tweaks
-echo "Applying security and input tweaks..."
-sudo pwpolicy -clearaccountpolicies
-defaults write com.apple.CrashReporter DialogType -string "none"
-defaults write -g NSAutomaticQuoteSubstitutionEnabled -bool false
-defaults write -g NSAutomaticDashSubstitutionEnabled -bool false
-defaults write com.apple.ncprefs.plist DoNotPromptForNotifications -bool true && killall NotificationCenter
-defaults write com.apple.dock showAppExposeGestureEnabled -bool true
-defaults write com.apple.menuextra.clock DateFormat -string "EEE d MMM HH:mm"
-defaults write com.apple.systemuiserver "NSStatusItem Visible com.apple.menuextra.volume" -bool true
-defaults write com.apple.screencapture include-date -bool false
-mkdir -p ~/Desktop/Screenshots
-defaults write com.apple.screencapture location -string "${HOME}/Desktop/Screenshots"
-defaults write com.apple.finder QLEnableTextSelection -bool true
-defaults write -g NSAutomaticSpellingCorrectionEnabled -bool false
-defaults write com.apple.assistant.support "Assistant Enabled" -bool false && killall ControlCenter
-echo "Security and input tweaks applied."
-
-osascript -e 'tell application "System Events" to key code 144'
-
-# Enable tap to click for current user
-defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
-
-# Enable tap to click for login screen
-defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
-defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
-
-# Enable three-finger drag
- defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
-defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerDrag -bool true
-# Alternative method for three-finger drag (Accessibility setting)
-defaults write com.apple.accessibility.mouse TrackpadThreeFingerDrag -bool true
-
-# Set 8-hour delay (28800 seconds) before password is required
-defaults write com.apple.screensaver askForPasswordDelay -int 28800
-
-# Keep password requirement enabled but with 8-hour delay
-defaults write com.apple.screensaver askForPassword -int 1
-
-# php config
-config_file=$(php --ini | awk '/Loaded Configuration File/ {print $4}')
-sudo sed -i '' -e 's/^max_execution_time = .*/max_execution_time = 600/' \
-               -e 's/^memory_limit = .*/memory_limit = 1024M/' \
-               -e 's/^upload_max_filesize = .*/upload_max_filesize = 512M/' \
-               -e 's/^post_max_size = .*/post_max_size = 512M/' "$config_file"
-
-
-# Git configuration
-echo "Configuring Git..."
-git config --global user.email "mzgsdev@gmail.com"
-git config --global user.name "Mustafa"
-echo "Git configuration complete."
-
-defaults write com.apple.dock wvous-br-corner -int 4; defaults write com.apple.dock wvous-br-modifier -int 0;
-defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
-defaults write com.apple.finder WarnOnEmptyTrash -bool false
-
-
-dockutil --remove all
-
-dockutil --add /Applications/Mail.app
-dockutil --add /Applications/Google\ Chrome.app
-dockutil --add /System/Applications/System\ Settings.app
-dockutil --add "/Applications/Visual Studio Code.app"
-dockutil --add /Users/$(whoami)/Downloads --view fan --display stack --sort dateadded --section others
-
-python3 -m pip config set global.break-system-packages true
-python3 -m pip config set install.user true
-
- 
-# Restart services
-echo "Restarting Finder, Dock, and SystemUIServer..."
-killall Finder
-killall Dock
-killall cfprefsd
-
-echo "Finished installations and configurations."
-exit 0
+if [[ "${#failures[@]}" -gt 0 ]]; then
+    printf '\nSettings setup finished with %s failure(s):\n' "${#failures[@]}" >&2
+    printf '  - %s\n' "${failures[@]}" >&2
+    exit 1
+fi
+echo "Preference commands completed. Log out/in, then verify the manual settings above."
