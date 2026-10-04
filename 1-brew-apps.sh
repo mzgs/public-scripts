@@ -71,6 +71,7 @@ run brew update
 
 CLI_APPS=(
     wget
+    zstd
     speedtest-go
     dockutil
     tree

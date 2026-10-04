@@ -71,6 +71,7 @@ run defaults write -g InitialKeyRepeat -int 10
 run defaults write -g NSAutomaticQuoteSubstitutionEnabled -bool false
 run defaults write -g NSAutomaticDashSubstitutionEnabled -bool false
 run defaults write -g NSAutomaticSpellingCorrectionEnabled -bool false
+run defaults write -g NSAutomaticPeriodSubstitutionEnabled -bool false
 run defaults write -g NSAutomaticWindowAnimationsEnabled -bool false
 for domain in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothMultitouch.trackpad; do
     run defaults write "$domain" Clicking -bool true
@@ -83,6 +84,7 @@ run defaults -currentHost write -g com.apple.mouse.tapBehavior -int 1
 run defaults write -g com.apple.mouse.tapBehavior -int 1
 
 echo "Configuring Finder..."
+run defaults write -g AppleShowAllExtensions -bool true
 run defaults write com.apple.finder QuitMenuItem -bool true
 run defaults write com.apple.finder NewWindowTarget -string PfHm
 run defaults write com.apple.finder ShowStatusBar -bool true
