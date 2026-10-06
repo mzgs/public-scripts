@@ -181,13 +181,6 @@ for process in Finder Dock SystemUIServer ControlCenter; do
     fi
 done
 
-/usr/libexec/PlistBuddy -c \
-  "Set :AppleSymbolicHotKeys:64:enabled false" \
-  ~/Library/Preferences/com.apple.symbolichotkeys.plist
-
-killall cfprefsd
-killall SystemUIServer
-
 
 cat <<'EOF'
 
