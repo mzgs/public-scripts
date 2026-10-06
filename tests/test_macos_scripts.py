@@ -31,6 +31,7 @@ elif name == "brew":
     elif args[0] == "list":
         sys.exit(0 if args[1] + ":" + args[2] in state else 1)
     elif args[0] == "install":
+        assert os.environ.get("HOMEBREW_NO_ASK") == "1", "Installation would prompt for confirmation"
         state.append(args[1] + ":" + args[2].split("/")[-1])
         state_file.write_text(json.dumps(state))
     elif args[0] == "--prefix":
@@ -114,7 +115,7 @@ class MacSetupTests(unittest.TestCase):
         return [json.loads(line) for line in (self.root / "commands.jsonl").read_text().splitlines()]
 
     def test_apps_install_and_rerun_without_duplicate_profile_lines(self):
-        first = self.run_script("1-brew-apps.sh")
+        first = self.run_script("1-brew-apps.sh", HOMEBREW_NO_ASK="")
         self.assertEqual(first.returncode, 0, first.stderr)
         self.assertIn(["brew", "install", "--formula", "yt-dlp"], self.commands())
         self.assertIn(["brew", "install", "--cask", "codex"], self.commands())

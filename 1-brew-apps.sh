@@ -2,6 +2,7 @@
 # Run as your normal user; sudo is requested only to bootstrap Homebrew.
 set -u
 set -o pipefail
+export HOMEBREW_NO_ASK=1
 
 if [[ "$(uname -s)" != Darwin ]]; then
     echo "This script requires macOS." >&2
