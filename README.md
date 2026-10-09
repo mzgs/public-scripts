@@ -43,4 +43,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/2-m
 ```
 
  
+ #### Cretae Rust GUI App
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/3-rust-gui-app.sh)
+```
  
