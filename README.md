@@ -47,4 +47,6 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/main/2-m
 ```
 bash <(curl -fsSL https://raw.githubusercontent.com/mzgs/public-scripts/refs/heads/main/rust-gui-base-app.sh)
 ```
- 
+The app name is automatically normalized from the folder name. Uppercase letters
+become lowercase, unsupported characters become `-`, and names
+that do not start with a letter get an `app-` prefix. The folder is not renamed.

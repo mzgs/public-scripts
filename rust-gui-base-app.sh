@@ -6,13 +6,15 @@ command -v rustup >/dev/null 2>&1 || {
     exit 1
 }
 
-app_name=$(basename "$PWD")
+folder_name=$(basename "$PWD")
+app_name=$(printf '%s' "$folder_name" | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C tr -c 'a-z0-9_-' '-')
 case "$app_name" in
-    ''|[!a-z]*|*[!a-z0-9_-]*)
-        printf '%s\n' 'Invalid folder name: use lowercase letters, digits, - or _, starting with a letter.' >&2
-        exit 1
-        ;;
+    '') app_name=app ;;
+    [!a-z]*) app_name="app-$app_name" ;;
 esac
+if [ "$app_name" != "$folder_name" ]; then
+    printf 'Using app name "%s" for folder "%s".\n' "$app_name" "$folder_name"
+fi
 
 rustup update stable
 mkdir -p src
